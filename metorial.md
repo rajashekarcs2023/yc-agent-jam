@@ -1,0 +1,140 @@
+Welcome to the Metorial Docs
+This documentation provides an overview of the Metorial API and SDKs, including guides, references, and examples to help you get started.
+
+Getting Started
+Learn more about how to get set up with Metorial.
+
+Quick Start
+Get started with Metorial in minutes.
+
+Deploy MCP Servers
+Learn how to deploy a MCP server in your Metorial project.
+
+Test MCP Servers
+Learn how to test your servers in the Metorial dashboard.
+
+Using MCP Servers
+Learn how to use your deployed MCP servers.
+
+Monitoring MCP Servers
+Learn how to monitor your MCP servers.
+
+For Developers
+Explore the Metorial API and SDKs to build powerful applications and integrations with Metorial.
+
+API Reference
+Explore the Metorial API endpoints and methods.
+
+JavaScript SDK
+Integrate Metorial with your applications using our client libraries.
+
+Python SDK
+Integrate Metorial with your applications using our client libraries.
+
+Manage API Keys
+Create and manage API keys for your Metorial project.
+
+Metorial API Reference
+The Metorial API is a RESTful service with resource-oriented URLs. It consistently returns JSON-encoded responses and adheres to standard HTTP response codes. The API supports both URL-encoded and JSON-encoded request bodies, but JSON is the recommended format.
+
+Each API key is tied to a specific environment within a project in your account. This enables interaction with either live or test data for your project.
+
+Base URL
+The base URL for the Metorial API is:
+
+https://api.metorial.com
+All API requests are made to this URL, with the appropriate endpoint appended.
+
+Client Libraries
+We offer first-party SDKs for the following programming languages:
+
+JavaScript
+Use Metorial with JavaScript or TypeScript. In browser, Node.js, and Deno environments.
+
+These SDKs are open-source, and their repositories are available on our GitHub page. Feel free to contact us for assistance or to report issues.
+
+Testing & Environments
+You can create multiple environments for each project via the Metorial dashboard. Each environment has unique API keys, ensuring clear separation of data access.
+
+Example: Your development API key will never access the production environment.
+Any resources created using the API are linked to the environment associated with the provided API key.
+Authentication
+The Metorial API uses API keys for authentication, which you can generate from the Metorial dashboard. There are two types of API keys:
+
+Publishable API Keys:
+These keys allow access to public data, such as agent lists. They are safe for client-side usage and have the prefix metorial_pk_.
+
+Secret API Keys:
+These keys provide full access to your project and must be kept private. Never expose them in client-side code. They have the prefix metorial_sk_.
+
+Using API Keys
+Include the API key in the Authorization header using the Bearer scheme:
+
+Authorization: Bearer metorial_pk_abc123
+Rate Limits
+To ensure fair usage, the Metorial API imposes rate limits. If exceeded, a 429 Too Many Requests response is returned. Rate limits vary by environment and access type:
+
+General Limit: 1000 requests per IP address every 10 seconds.
+Development Environment: 100 requests per API key every 10 minutes.
+Production Environment: 5000 requests per API key every 10 minutes.
+Contact us if your use case requires higher limits.
+
+Errors
+The Metorial API uses standard HTTP response codes to communicate success or failure:
+
+200 OK: Successful request.
+400 Bad Request: Invalid parameters or action.
+401 Unauthorized: Invalid API key.
+403 Forbidden: Insufficient permissions.
+404 Not Found: Resource not found.
+422 Unprocessable Entity: Validation failure; check request parameters.
+429 Too Many Requests: Rate limit exceeded.
+5xx Server Errors: Server issues; contact us for assistance.
+Pagination
+Endpoints returning lists support pagination. Responses include an items array (resources) and a pagination object:
+
+{
+  "items": [
+    // resources
+  ],
+  "pagination": {
+    "has_more_after": true,
+    "has_more_before": false
+  }
+}
+after and before query parameters:
+To fetch the next or previous page, use the after or before query parameter with the ID of a record from the current page. Example:
+
+GET /sessions?after=ses_0mcsv9nhnxIQdeTerz35SzF
+has_more_after and has_more_before:
+Boolean flags in the response indicating if there are more results after or before the current page.
+
+Example response:
+
+{
+  "items": [
+    {
+      "id": "ses_0mcsv9nhnxIQdeTerz35SzF"
+      // ...
+    }
+    // ...
+  ],
+  "pagination": {
+    "has_more_after": true,
+    "has_more_before": false
+  }
+}
+Versioning
+The Metorial API is versioned to ensure backward compatibility. Each environment has a default version, which you can change in the Metorial dashboard.
+
+Additionally, the API version can be specified as a request header:
+
+Metorial-Version: 2025-01-01
+Resource Identifiers (IDs)
+All API resources have unique identifiers. Some, like Actor IDs, can optionally be user-defined. Others, like Thread IDs, are generated by Metorial and include a type-specific prefix.
+
+Example File ID: file_Rm4Mnheq2bfEPhBhP7SY
+
+Example User ID: mus_0mclxtv45v1dMKihA88fqe
+
+IDs are always fewer than 255 characters in length.
