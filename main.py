@@ -16,7 +16,7 @@ from pydantic import BaseModel
 from dotenv import load_dotenv
 
 # Load environment variables
-load_dotenv()
+load_dotenv('.ENV')
 
 # Import our services
 from services.captain_service import CaptainService
@@ -244,4 +244,4 @@ async def experiment_stream(websocket: WebSocket, experiment_id: str):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
