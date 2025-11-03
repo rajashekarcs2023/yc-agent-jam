@@ -520,6 +520,35 @@ async def get_experiment_results(experiment_id: str):
     
     return active_experiments[experiment_id]
 
+@app.get("/api/captain/features")
+async def get_captain_features():
+    """Showcase Captain API features being used in this platform"""
+    from services.captain_service import CaptainService
+    captain_service = CaptainService()
+    
+    return {
+        "message": "🏆 Live Code Experiment Agent - Maximizing Captain API for YC Agent Jam 2024",
+        "captain_showcase": captain_service.get_captain_features_showcase(),
+        "platform_architecture": {
+            "captain_role": "Primary AI analysis engine with unlimited context",
+            "integration_points": [
+                "Code analysis and complexity evaluation",
+                "Performance bottleneck identification", 
+                "Optimization strategy generation",
+                "Real-time streaming analysis",
+                "Tool calling for structured data",
+                "Multi-turn iterative improvement"
+            ]
+        },
+        "competitive_advantages": [
+            "Unlimited context processing for complete codebase analysis",
+            "Real-time streaming for responsive user experience",
+            "Tool calling for precise, structured optimization data",
+            "Integration with multiple AI services for comprehensive optimization",
+            "Mathematical precision in algorithmic analysis"
+        ]
+    }
+
 @app.websocket("/api/experiment/stream/{experiment_id}")
 async def experiment_stream(websocket: WebSocket, experiment_id: str):
     """WebSocket endpoint for real-time experiment updates"""
