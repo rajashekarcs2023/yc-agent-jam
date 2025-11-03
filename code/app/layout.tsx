@@ -8,7 +8,7 @@ const _geist = Geist({ subsets: ["latin"] })
 const _geistMono = Geist_Mono({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "CodeOptim - Global Code Optimization Platform",
+  title: "CodeLab.ai - Global Code Optimization Platform",
   description:
     "AI-powered code optimization marketplace where developers discover, contribute, and monetize performance improvements",
   generator: "v0.app",

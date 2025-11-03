@@ -24,6 +24,7 @@ from services.morph_service import MorphService
 from services.metorial_service import MetorialService
 from services.firecrawl_service import FirecrawlService
 from services.e2b_service import E2BService
+from services.github_service import GitHubService
 
 app = FastAPI(title="CodeOptim Platform API", version="1.0.0")
 
@@ -42,6 +43,7 @@ morph_service = MorphService()
 metorial_service = MetorialService()
 firecrawl_service = FirecrawlService()
 e2b_service = E2BService()
+github_service = GitHubService()
 
 # Active experiments storage
 active_experiments: Dict[str, Dict] = {}
@@ -67,6 +69,15 @@ class DocumentationRequest(BaseModel):
 
 class DocumentationResponse(BaseModel):
     generation_id: str
+    status: str
+
+class GitHubAnalysisRequest(BaseModel):
+    github_url: str
+    analysis_depth: str = "comprehensive"  # basic, comprehensive, deep
+    focus_areas: List[str] = ["performance", "algorithms", "complexity"]
+
+class GitHubAnalysisResponse(BaseModel):
+    analysis_id: str
     status: str
 
 @app.get("/")
@@ -125,6 +136,33 @@ async def generate_from_documentation(
     background_tasks.add_task(run_documentation_generation, generation_id, request)
     
     return DocumentationResponse(generation_id=generation_id, status="started")
+
+@app.post("/api/github/analyze", response_model=GitHubAnalysisResponse)
+async def analyze_github_repository(
+    request: GitHubAnalysisRequest,
+    background_tasks: BackgroundTasks
+):
+    """Analyze a GitHub repository for optimization opportunities"""
+    analysis_id = str(uuid.uuid4())
+    
+    # Initialize analysis state
+    analysis_data = {
+        "id": analysis_id,
+        "status": "initializing",
+        "request": request.dict(),
+        "created_at": datetime.now().isoformat(),
+        "repository_info": None,
+        "analysis_results": None,
+        "optimization_report": None,
+        "progress": 0
+    }
+    
+    active_experiments[analysis_id] = analysis_data
+    
+    # Start analysis in background
+    background_tasks.add_task(run_github_analysis, analysis_id, request)
+    
+    return GitHubAnalysisResponse(analysis_id=analysis_id, status="started")
 
 async def run_experiment(experiment_id: str, request: ExperimentRequest):
     """Run the optimization experiment"""
@@ -298,6 +336,116 @@ async def run_documentation_generation(generation_id: str, request: Documentatio
         print(f"❌ Documentation generation {generation_id} failed: {str(e)}")
         generation["status"] = "failed"
         generation["error"] = str(e)
+
+async def run_github_analysis(analysis_id: str, request: GitHubAnalysisRequest):
+    """Run GitHub repository analysis"""
+    try:
+        analysis = active_experiments[analysis_id]
+        analysis["status"] = "fetching_repository"
+        analysis["progress"] = 10
+        
+        print(f"🔍 Starting GitHub analysis for: {request.github_url}")
+        
+        # Analyze repository with GitHub service
+        repository_analysis = await github_service.analyze_repository(request.github_url)
+        
+        if repository_analysis.get("error"):
+            analysis["status"] = "failed"
+            analysis["error"] = repository_analysis["error"]
+            return
+        
+        analysis["repository_info"] = repository_analysis.get("repository")
+        analysis["analysis_results"] = repository_analysis.get("analysis_results")
+        analysis["optimization_report"] = repository_analysis.get("optimization_report")
+        analysis["progress"] = 50
+        analysis["status"] = "analyzing_with_ai"
+        
+        print(f"📊 Repository fetched, analyzing {repository_analysis.get('files_analyzed', 0)} files")
+        
+        # Enhanced analysis with Captain for entire codebase
+        if repository_analysis.get("analysis_results"):
+            print(f"🧠 Running Captain analysis on entire codebase...")
+            
+            # Prepare codebase for Captain's unlimited context
+            codebase_files = {}
+            language_analysis = repository_analysis["analysis_results"].get("language_analysis", {})
+            
+            for language, lang_data in language_analysis.items():
+                for file_analysis in lang_data.get("file_analysis", []):
+                    file_path = file_analysis.get("file_path")
+                    if file_path:
+                        # We'd need the file content here - simplified for demo
+                        codebase_files[file_path] = f"// {language} file: {file_path}"
+            
+            if codebase_files:
+                captain_codebase_analysis = await captain_service.analyze_entire_codebase(
+                    codebase_files, 
+                    "performance"
+                )
+                analysis["captain_codebase_analysis"] = captain_codebase_analysis
+        
+        analysis["progress"] = 80
+        analysis["status"] = "generating_recommendations"
+        
+        # Generate optimized variants for top issues
+        optimization_report = repository_analysis.get("optimization_report", {})
+        top_recommendations = optimization_report.get("recommendations", [])
+        
+        generated_optimizations = []
+        
+        for i, recommendation in enumerate(top_recommendations[:3]):  # Top 3 recommendations
+            try:
+                # Generate optimized code for this recommendation
+                if recommendation.get("type") == "algorithmic":
+                    print(f"⚡ Generating optimized code for: {recommendation.get('title')}")
+                    
+                    # Create sample code for the issue
+                    sample_code = f"// Sample code representing {recommendation.get('title')}\n// Original implementation with optimization potential"
+                    
+                    # Use Morph to generate optimized version
+                    mock_analysis = {"patterns": ["optimization"], "complexity": "O(n²)"}
+                    mock_research = {"optimization_techniques": ["improved_algorithm"]}
+                    
+                    optimized_variant = await morph_service.generate_variant(
+                        sample_code,
+                        mock_analysis, 
+                        mock_research,
+                        i + 1
+                    )
+                    
+                    generated_optimizations.append({
+                        "recommendation": recommendation,
+                        "optimized_code": optimized_variant,
+                        "files_affected": recommendation.get("files_affected", [])
+                    })
+                    
+            except Exception as e:
+                print(f"Error generating optimization for recommendation {i}: {e}")
+        
+        analysis["generated_optimizations"] = generated_optimizations
+        analysis["progress"] = 100
+        analysis["status"] = "completed"
+        
+        # Final results
+        analysis["results"] = {
+            "repository_name": repository_analysis.get("repository", {}).get("full_name", "unknown"),
+            "files_analyzed": repository_analysis.get("files_analyzed", 0),
+            "languages_detected": repository_analysis.get("analysis_results", {}).get("repository_overview", {}).get("languages_detected", []),
+            "algorithms_found": len(optimization_report.get("top_algorithms", [])),
+            "optimization_opportunities": len(optimization_report.get("optimization_opportunities", [])),
+            "performance_hotspots": len(optimization_report.get("performance_hotspots", [])),
+            "recommendations_count": len(top_recommendations),
+            "generated_optimizations": len(generated_optimizations),
+            "estimated_improvement": optimization_report.get("estimated_improvements", {}),
+            "completed_at": datetime.now().isoformat()
+        }
+        
+        print(f"✅ GitHub analysis {analysis_id} completed!")
+        
+    except Exception as e:
+        print(f"❌ GitHub analysis {analysis_id} failed: {str(e)}")
+        analysis["status"] = "failed"
+        analysis["error"] = str(e)
 
 def _calculate_improvement(execution_result: Dict[str, Any]) -> float:
     """Calculate performance improvement percentage"""

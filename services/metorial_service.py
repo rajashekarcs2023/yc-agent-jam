@@ -81,7 +81,7 @@ class MetorialService:
             # Real Metorial API integration
             try:
                 # Create a session with the Exa MCP server deployment
-                session = self.metorial.mcp_sessions.create(
+                session = self.metorial.create_mcp_session(
                     server_deployment_id=self.exa_deployment_id
                 )
                 

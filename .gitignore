@@ -2,3 +2,7 @@ yc-env
 vercel-v0-prompt.md
 .env
 .env.example
+COMPLETE_FRONTEND_FEATURES.md
+ENHANCED_FRONTEND_TEST.md
+FRONTEND_USAGE_GUIDE.md
+YC_SUBMISSION.md

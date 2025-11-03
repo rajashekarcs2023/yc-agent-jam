@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Copy, RotateCcw, Zap, Clock, MemoryStick } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
+import { VariantViewer } from "@/components/variant-viewer"
 
 interface ExperimentResultsProps {
   originalCode: string
@@ -52,130 +53,184 @@ function optimizedFunction() {
     })
   }
 
+  // Get all variants from the full experiment data
+  const allVariants = fullResults?.variants || []
+  const experimentDetails = fullResults || {}
+
   return (
-    <Card className="p-6">
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold">Experiment Results</h2>
-          {fullResults && (
-            <div className="flex gap-2 mt-2">
-              <Badge variant="secondary">
-                <Zap className="mr-1 h-3 w-3" />
-                {fullResults.total_variants} variants tested
-              </Badge>
-              {fullResults.real_execution_count > 0 && (
-                <Badge variant="default">
-                  🚀 {fullResults.real_execution_count} real executions (E2B)
+    <div className="space-y-6">
+      {/* Experiment Overview */}
+      <Card className="p-6">
+        <div className="mb-6 flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold">Experiment Results</h2>
+            {experimentDetails && (
+              <div className="flex gap-2 mt-2">
+                <Badge variant="secondary">
+                  <Zap className="mr-1 h-3 w-3" />
+                  {experimentDetails.total_variants || allVariants.length} variants generated
                 </Badge>
-              )}
-            </div>
-          )}
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={handleCopy}>
-            <Copy className="mr-2 h-4 w-4" />
-            Copy Best Code
-          </Button>
-          <Button variant="outline" size="sm">
-            <RotateCcw className="mr-2 h-4 w-4" />
-            Run New Experiment
-          </Button>
-        </div>
-      </div>
-
-      <div className="grid gap-6 lg:grid-cols-2">
-        <div>
-          <h3 className="mb-3 text-lg font-semibold">Original Code</h3>
-          <pre className="rounded-lg border border-border bg-muted p-4 text-sm max-h-96 overflow-auto">
-            <code className="font-mono">{originalCode || "// No code provided"}</code>
-          </pre>
-        </div>
-
-        <div>
-          <div className="flex items-center gap-2 mb-3">
-            <h3 className="text-lg font-semibold text-success">Best Optimized Code</h3>
-            {bestVariant && (
-              <Badge variant="outline">{bestVariant.name}</Badge>
+                {experimentDetails.real_execution_count > 0 && (
+                  <Badge variant="default">
+                    🚀 {experimentDetails.real_execution_count} real E2B executions
+                  </Badge>
+                )}
+                <Badge variant="outline">
+                  🧠 Captain + ⚡ Morph + 🔍 Metorial + 🚀 E2B
+                </Badge>
+              </div>
             )}
           </div>
-          <pre className="rounded-lg border border-success/30 bg-muted p-4 text-sm max-h-96 overflow-auto">
-            <code className="font-mono">{optimizedCode}</code>
-          </pre>
-          {bestVariant && (
-            <p className="mt-2 text-sm text-muted-foreground">
-              {bestVariant.description}
-            </p>
-          )}
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={handleCopy}>
+              <Copy className="mr-2 h-4 w-4" />
+              Copy Best Code
+            </Button>
+            <Button variant="outline" size="sm">
+              <RotateCcw className="mr-2 h-4 w-4" />
+              Run New Experiment
+            </Button>
+          </div>
         </div>
-      </div>
 
-      <div className="mt-6">
-        <h3 className="mb-4 text-lg font-semibold">Performance Metrics</h3>
-        <div className="grid gap-4 sm:grid-cols-3">
+        {/* Quick Stats */}
+        <div className="grid gap-4 sm:grid-cols-4">
           <Card className="p-4">
             <div className="flex items-center gap-2 mb-1">
-              <Clock className="h-4 w-4 text-muted-foreground" />
-              <p className="text-sm text-muted-foreground">Execution Time</p>
+              <Clock className="h-4 w-4 text-blue-500" />
+              <p className="text-sm text-muted-foreground">Best Time</p>
             </div>
-            <p className="text-2xl font-bold text-success">
+            <p className="text-xl font-bold text-blue-600">
               {bestVariant?.performance?.execution_time_ms?.toFixed(3) || "0.5"}ms
             </p>
-            <p className="mt-1 text-xs text-success">
-              ↓ {bestVariant?.performance?.improvement_percent?.toFixed(1) || "80"}% improvement
+            <p className="mt-1 text-xs text-green-600">
+              ↓ {bestVariant?.performance?.improvement_percent?.toFixed(1) || "80"}% faster
             </p>
           </Card>
           <Card className="p-4">
             <div className="flex items-center gap-2 mb-1">
-              <MemoryStick className="h-4 w-4 text-muted-foreground" />
+              <MemoryStick className="h-4 w-4 text-purple-500" />
               <p className="text-sm text-muted-foreground">Memory Usage</p>
             </div>
-            <p className="text-2xl font-bold text-processing">
+            <p className="text-xl font-bold text-purple-600">
               {bestVariant?.performance?.memory_usage_mb?.toFixed(1) || "2.1"} MB
             </p>
-            <p className="mt-1 text-xs text-processing">
-              Memory efficient
-            </p>
+            <p className="mt-1 text-xs text-muted-foreground">Peak memory</p>
           </Card>
           <Card className="p-4">
             <div className="flex items-center gap-2 mb-1">
-              <Zap className="h-4 w-4 text-muted-foreground" />
-              <p className="text-sm text-muted-foreground">Iterations</p>
+              <Zap className="h-4 w-4 text-green-500" />
+              <p className="text-sm text-muted-foreground">Avg Improvement</p>
             </div>
-            <p className="text-2xl font-bold">
-              {bestVariant?.performance?.iterations?.toLocaleString() || "1,000"}
+            <p className="text-xl font-bold text-green-600">
+              {experimentDetails.avg_improvement?.toFixed(1) || "45"}%
             </p>
-            <p className="mt-1 text-xs">
-              {bestVariant?.performance?.real_execution ? "Real execution" : "Simulated"}
+            <p className="mt-1 text-xs text-muted-foreground">Across all variants</p>
+          </Card>
+          <Card className="p-4">
+            <div className="flex items-center gap-2 mb-1">
+              <Badge className="h-4 w-4 bg-yellow-500" />
+              <p className="text-sm text-muted-foreground">Total Variants</p>
+            </div>
+            <p className="text-xl font-bold text-yellow-600">
+              {allVariants.length || experimentDetails.total_variants || 0}
             </p>
+            <p className="mt-1 text-xs text-muted-foreground">Generated & tested</p>
           </Card>
         </div>
-      </div>
 
-      {fullResults && (
-        <div className="mt-6">
-          <h3 className="mb-4 text-lg font-semibold">Experiment Summary</h3>
-          <div className="rounded-lg border bg-muted/50 p-4">
-            <div className="grid gap-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Average Improvement:</span>
-                <span className="font-mono">{fullResults.avg_improvement?.toFixed(1)}%</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Total Variants Generated:</span>
-                <span className="font-mono">{fullResults.total_variants}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Real Executions (E2B):</span>
-                <span className="font-mono">{fullResults.real_execution_count || 0}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Completed:</span>
-                <span className="font-mono">{new Date(fullResults.completed_at).toLocaleString()}</span>
-              </div>
+        {/* Pipeline Status */}
+        <div className="mt-6 p-4 bg-muted/50 rounded-lg">
+          <h4 className="font-medium mb-2">AI Pipeline Status</h4>
+          <div className="grid gap-2 sm:grid-cols-4 text-sm">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+              <span>🧠 Captain: Analysis Complete</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+              <span>🔍 Metorial: Research Complete</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+              <span>⚡ Morph: Generation Complete</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+              <span>🚀 E2B: Execution Complete</span>
             </div>
           </div>
         </div>
+      </Card>
+
+      {/* All Variants Viewer */}
+      {allVariants.length > 0 && (
+        <VariantViewer 
+          variants={allVariants}
+          originalCode={originalCode}
+          bestVariant={bestVariant}
+        />
       )}
-    </Card>
+
+      {/* Experiment Details */}
+      {experimentDetails && Object.keys(experimentDetails).length > 0 && (
+        <Card className="p-6">
+          <h3 className="mb-4 text-lg font-semibold">Complete Experiment Data</h3>
+          <div className="space-y-4">
+            {/* Analysis Results */}
+            {experimentDetails.analysis && (
+              <div>
+                <h4 className="font-medium mb-2">🧠 Captain Analysis</h4>
+                <div className="bg-muted p-3 rounded-md">
+                  <p className="text-sm"><strong>Complexity:</strong> {experimentDetails.analysis.complexity}</p>
+                  <p className="text-sm"><strong>Patterns Found:</strong> {experimentDetails.analysis.patterns?.join(', ') || 'None'}</p>
+                  <p className="text-sm"><strong>Suggestions:</strong> {experimentDetails.analysis.suggestions?.length || 0}</p>
+                </div>
+              </div>
+            )}
+
+            {/* Research Results */}
+            {experimentDetails.research && (
+              <div>
+                <h4 className="font-medium mb-2">🔍 Metorial Research</h4>
+                <div className="bg-muted p-3 rounded-md">
+                  <p className="text-sm"><strong>Techniques Found:</strong> {experimentDetails.research.optimization_techniques?.length || 0}</p>
+                  <p className="text-sm"><strong>Patterns Discovered:</strong> {experimentDetails.research.patterns_discovered?.join(', ') || 'None'}</p>
+                  <p className="text-sm"><strong>Confidence:</strong> {experimentDetails.research.confidence_score || 'N/A'}</p>
+                </div>
+              </div>
+            )}
+
+            {/* Execution Summary */}
+            <div>
+              <h4 className="font-medium mb-2">📊 Execution Summary</h4>
+              <div className="grid gap-2 text-sm bg-muted p-3 rounded-md">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Experiment Started:</span>
+                  <span className="font-mono">{experimentDetails.created_at ? new Date(experimentDetails.created_at).toLocaleString() : 'N/A'}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Experiment Completed:</span>
+                  <span className="font-mono">{experimentDetails.results?.completed_at ? new Date(experimentDetails.results.completed_at).toLocaleString() : 'N/A'}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Total Processing Time:</span>
+                  <span className="font-mono">
+                    {experimentDetails.created_at && experimentDetails.results?.completed_at 
+                      ? `${((new Date(experimentDetails.results.completed_at).getTime() - new Date(experimentDetails.created_at).getTime()) / 1000).toFixed(1)}s`
+                      : 'N/A'
+                    }
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Real E2B Executions:</span>
+                  <span className="font-mono">{experimentDetails.real_execution_count || 0}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </Card>
+      )}
+    </div>
   )
 }

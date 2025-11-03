@@ -11,10 +11,13 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Switch } from "@/components/ui/switch"
 import { Slider } from "@/components/ui/slider"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Play, Settings, ChevronDown } from "lucide-react"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Play, Settings, ChevronDown, Github, Code } from "lucide-react"
 import { ExperimentFeed } from "@/components/experiment-feed"
 import { PerformanceVisualization } from "@/components/performance-visualization"
 import { ExperimentResults } from "@/components/experiment-results"
+import { GitHubAnalyzer } from "@/components/github-analyzer"
+import { DocumentationGenerator } from "@/components/documentation-generator"
 
 export function ExperimentLab() {
   const [code, setCode] = useState("")
@@ -110,14 +113,30 @@ export function ExperimentLab() {
   return (
     <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
       <div className="mb-8">
-        <h1 className="text-balance text-4xl font-bold tracking-tight">AI Code Optimization Lab</h1>
+        <h1 className="text-balance text-4xl font-bold tracking-tight">CodeLab AI - Live Code Experiment Agent</h1>
         <p className="mt-2 text-pretty text-muted-foreground">
-          Experiment with AI-powered code optimization. Generate and test multiple variants to find the best performance
-          improvements.
+          Generate, test, and optimize code with AI. Analyze GitHub repos, generate from documentation, or optimize your code with live experiments.
         </p>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
+      <Tabs defaultValue="code-experiment" className="w-full">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="code-experiment" className="flex items-center gap-2">
+            <Code className="h-4 w-4" />
+            Code Optimization
+          </TabsTrigger>
+          <TabsTrigger value="documentation" className="flex items-center gap-2">
+            <Settings className="h-4 w-4" />
+            Documentation to Code
+          </TabsTrigger>
+          <TabsTrigger value="github-analysis" className="flex items-center gap-2">
+            <Github className="h-4 w-4" />
+            GitHub Analysis
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="code-experiment" className="mt-6">
+          <div className="grid gap-6 lg:grid-cols-3">
         {/* Main Input Section */}
         <div className="lg:col-span-2">
           <Card className="p-6">
@@ -292,16 +311,26 @@ export function ExperimentLab() {
         </div>
       )}
 
-      {/* Results Section */}
-      {showResults && (
-        <div className="mt-6">
-          <ExperimentResults 
-            originalCode={code} 
-            experimentData={experimentData}
-            experimentId={experimentId}
-          />
-        </div>
-      )}
+          {/* Results Section */}
+          {showResults && (
+            <div className="mt-6">
+              <ExperimentResults 
+                originalCode={code} 
+                experimentData={experimentData}
+                experimentId={experimentId}
+              />
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="documentation" className="mt-6">
+          <DocumentationGenerator />
+        </TabsContent>
+
+        <TabsContent value="github-analysis" className="mt-6">
+          <GitHubAnalyzer />
+        </TabsContent>
+      </Tabs>
     </main>
   )
 }
