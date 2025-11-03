@@ -23,7 +23,7 @@ class FirecrawlService:
             print(f"🔍 Scraping documentation from {len(doc_urls)} URLs using Firecrawl")
             
             # Create session with Firecrawl MCP server
-            session = self.metorial.sessions.create(
+            session = self.metorial.mcp_sessions.create(
                 server_deployment_id=self.firecrawl_deployment_id
             )
             
@@ -83,7 +83,7 @@ class FirecrawlService:
         """Extract API patterns and code examples from scraped documentation"""
         try:
             # Use Firecrawl's extract tool for structured data extraction
-            session = self.metorial.sessions.create(
+            session = self.metorial.mcp_sessions.create(
                 server_deployment_id=self.firecrawl_deployment_id
             )
             

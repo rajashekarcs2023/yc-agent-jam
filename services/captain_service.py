@@ -18,24 +18,53 @@ class CaptainService:
         )
     
     async def analyze_code(self, code: str, language: str, target: str) -> Dict[str, Any]:
-        """Analyze code for optimization opportunities using Captain's unlimited context"""
+        """Analyze code using Captain's unlimited context processing"""
         try:
-            # Create context for Captain analysis
-            analysis_context = f"""
-            Code Analysis Context:
-            - Language: {language}
-            - Optimization Target: {target}
-            - Code Length: {len(code)} characters
+            # Use Captain's proper context format for unlimited text processing
+            full_context = f"""
+            CODEBASE ANALYSIS REQUEST
+            =========================
             
-            Original Code:
+            Language: {language}
+            Optimization Target: {target}
+            Code Size: {len(code)} characters
+            
+            ORIGINAL CODE TO ANALYZE:
+            ```{language}
             {code}
+            ```
             
-            Performance Analysis Requirements:
-            - Identify algorithmic complexity
-            - Find bottlenecks and inefficiencies
-            - Suggest optimization patterns
-            - Identify data structure improvements
-            - Find redundant operations
+            ANALYSIS REQUIREMENTS:
+            1. Algorithmic Complexity Analysis
+               - Identify time complexity (Big O notation)
+               - Identify space complexity
+               - Find nested loops and recursive patterns
+            
+            2. Performance Bottleneck Detection
+               - Inefficient data structure usage
+               - Redundant operations
+               - Memory allocation patterns
+               - I/O operations
+            
+            3. Optimization Pattern Identification
+               - Dynamic programming opportunities
+               - Caching/memoization possibilities
+               - Two-pointer technique applications
+               - Sliding window optimizations
+               - Hash map optimization potential
+            
+            4. Code Quality Issues
+               - Readability problems
+               - Maintainability concerns
+               - Anti-patterns
+            
+            5. Language-Specific Optimizations
+               - Built-in function usage
+               - Library-specific optimizations
+               - Framework best practices
+            
+            CONTEXT: This is part of a live code optimization platform that generates multiple variants
+            of algorithms. The analysis will be used to create optimized implementations.
             """
             
             response = self.client.chat.completions.create(
@@ -43,16 +72,16 @@ class CaptainService:
                 messages=[
                     {
                         "role": "system", 
-                        "content": "You are an expert code performance analyst. Analyze the provided code and identify specific optimization opportunities."
+                        "content": "You are Captain's advanced code analysis engine. Provide comprehensive performance analysis with specific, actionable optimization recommendations."
                     },
                     {
                         "role": "user", 
-                        "content": f"Analyze this {language} code for {target.lower()} optimization opportunities. Focus on algorithmic improvements and performance bottlenecks."
+                        "content": f"Perform deep analysis of this {language} code for {target.lower()} optimization. Provide specific algorithmic improvements and performance enhancement strategies."
                     }
                 ],
                 extra_body={
                     "captain": {
-                        "context": analysis_context
+                        "context": full_context
                     }
                 }
             )
