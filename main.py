@@ -22,6 +22,7 @@ load_dotenv('.ENV')
 from services.captain_service import CaptainService
 from services.morph_service import MorphService
 from services.metorial_service import MetorialService
+from services.firecrawl_service import FirecrawlService
 
 app = FastAPI(title="CodeOptim Platform API", version="1.0.0")
 
@@ -38,6 +39,7 @@ app.add_middleware(
 captain_service = CaptainService()
 morph_service = MorphService()
 metorial_service = MetorialService()
+firecrawl_service = FirecrawlService()
 
 # Active experiments storage
 active_experiments: Dict[str, Dict] = {}
@@ -53,6 +55,16 @@ class ExperimentRequest(BaseModel):
 
 class ExperimentResponse(BaseModel):
     experiment_id: str
+    status: str
+
+class DocumentationRequest(BaseModel):
+    documentation_urls: List[str]
+    requirements: str
+    target_language: str = "javascript"
+    implementation_style: str = "production"  # simple, moderate, advanced, production
+
+class DocumentationResponse(BaseModel):
+    generation_id: str
     status: str
 
 @app.get("/")
@@ -84,6 +96,33 @@ async def start_experiment(
     background_tasks.add_task(run_experiment, experiment_id, request)
     
     return ExperimentResponse(experiment_id=experiment_id, status="started")
+
+@app.post("/api/documentation/generate", response_model=DocumentationResponse)
+async def generate_from_documentation(
+    request: DocumentationRequest,
+    background_tasks: BackgroundTasks
+):
+    """Generate code implementations from documentation URLs"""
+    generation_id = str(uuid.uuid4())
+    
+    # Initialize generation state
+    generation_data = {
+        "id": generation_id,
+        "status": "initializing",
+        "request": request.dict(),
+        "created_at": datetime.now().isoformat(),
+        "implementations": [],
+        "documentation": None,
+        "api_patterns": None,
+        "progress": 0
+    }
+    
+    active_experiments[generation_id] = generation_data
+    
+    # Start generation in background
+    background_tasks.add_task(run_documentation_generation, generation_id, request)
+    
+    return DocumentationResponse(generation_id=generation_id, status="started")
 
 async def run_experiment(experiment_id: str, request: ExperimentRequest):
     """Run the optimization experiment"""
@@ -164,6 +203,73 @@ async def run_experiment(experiment_id: str, request: ExperimentRequest):
         print(f"❌ Experiment {experiment_id} failed: {str(e)}")
         experiment["status"] = "failed"
         experiment["error"] = str(e)
+
+async def run_documentation_generation(generation_id: str, request: DocumentationRequest):
+    """Run documentation-based code generation"""
+    try:
+        generation = active_experiments[generation_id]
+        generation["status"] = "scraping"
+        generation["progress"] = 10
+        
+        # Step 1: Scrape documentation using Firecrawl
+        print(f"📚 Scraping documentation from {len(request.documentation_urls)} URLs")
+        documentation = await firecrawl_service.scrape_documentation(request.documentation_urls)
+        
+        generation["documentation"] = documentation
+        generation["status"] = "extracting"
+        generation["progress"] = 30
+        
+        # Step 2: Extract API patterns and code examples
+        print(f"🔍 Extracting API patterns from documentation")
+        api_patterns = await firecrawl_service.extract_api_patterns(documentation)
+        
+        generation["api_patterns"] = api_patterns
+        generation["status"] = "generating"
+        generation["progress"] = 50
+        
+        # Step 3: Generate multiple implementation variants
+        print(f"⚡ Generating implementation variants for {request.target_language}")
+        implementations = await firecrawl_service.generate_implementation_variants(
+            api_patterns,
+            request.requirements,
+            request.target_language
+        )
+        
+        generation["implementations"] = implementations
+        generation["status"] = "analyzing"
+        generation["progress"] = 80
+        
+        # Step 4: Analyze implementations with Captain for optimization suggestions
+        print(f"🧠 Analyzing implementations with Captain")
+        for impl in implementations:
+            analysis = await captain_service.analyze_code(
+                impl["code"],
+                request.target_language,
+                "Code Quality"
+            )
+            impl["analysis"] = analysis
+            impl["complexity_score"] = len(analysis.get("bottlenecks", []))
+            impl["optimization_potential"] = analysis.get("complexity", "Unknown")
+        
+        # Find best implementation
+        best_impl = min(implementations, key=lambda x: x.get("complexity_score", 999))
+        
+        generation["status"] = "completed"
+        generation["progress"] = 100
+        generation["results"] = {
+            "best_implementation": best_impl,
+            "total_implementations": len(implementations),
+            "documentation_sources": len(request.documentation_urls),
+            "api_patterns_found": len(api_patterns.get("api_patterns", [])),
+            "completed_at": datetime.now().isoformat()
+        }
+        
+        print(f"✅ Documentation generation {generation_id} completed!")
+        
+    except Exception as e:
+        print(f"❌ Documentation generation {generation_id} failed: {str(e)}")
+        generation["status"] = "failed"
+        generation["error"] = str(e)
 
 def simulate_performance_test(code: str, iterations: int) -> Dict:
     """Simulate performance testing (replace with real execution later)"""
