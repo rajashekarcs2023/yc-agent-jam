@@ -83,7 +83,7 @@ export function DocumentationGenerator({ className }: DocumentationGeneratorProp
 
     try {
       // Start documentation generation
-      const response = await fetch('http://localhost:8000/api/documentation/generate', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/documentation/generate`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -120,7 +120,7 @@ export function DocumentationGenerator({ className }: DocumentationGeneratorProp
   const monitorGeneration = async (id: string) => {
     const pollInterval = setInterval(async () => {
       try {
-        const response = await fetch(`http://localhost:8000/api/experiment/${id}/results`)
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/experiment/${id}/results`)
         const data = await response.json()
 
         setProgress(data.progress || 0)

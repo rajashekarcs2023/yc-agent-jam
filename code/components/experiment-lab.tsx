@@ -46,7 +46,7 @@ export function ExperimentLab() {
     
     try {
       // Start experiment via backend API
-      const response = await fetch('http://localhost:8000/api/experiment/start', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/experiment/start`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -88,7 +88,9 @@ export function ExperimentLab() {
   }
 
   const connectWebSocket = (expId: string) => {
-    const ws = new WebSocket(`ws://localhost:8000/api/experiment/stream/${expId}`)
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+    const wsUrl = apiUrl.replace('http://', 'ws://').replace('https://', 'wss://')
+    const ws = new WebSocket(`${wsUrl}/api/experiment/stream/${expId}`)
     
     ws.onmessage = (event) => {
       const data = JSON.parse(event.data)

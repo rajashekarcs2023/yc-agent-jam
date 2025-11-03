@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import { Copy, ChevronDown, Code, Zap, Clock, MemoryStick, Trophy, Play } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 
@@ -126,90 +127,66 @@ export function VariantViewer({ variants, originalCode, bestVariant }: VariantVi
           </div>
         </div>
 
-        {/* All Variants in Scrollable Vertical Layout */}
-        <div className="space-y-4 max-h-[80vh] overflow-y-auto pr-2">
+        {/* All Generated Variants in Grid Layout */}
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {variants.map((variant, index) => (
-            <Card 
-              key={variant.id} 
-              className={`p-4 cursor-pointer transition-all ${
-                selectedVariant?.id === variant.id ? 'ring-2 ring-primary' : ''
-              } ${variant.id === bestVariant?.id ? 'border-green-500 bg-green-50 dark:bg-green-950' : ''}`}
-              onClick={() => setSelectedVariant(variant)}
-            >
-              <div className="flex items-center justify-between mb-2">
+            <Card key={variant.id} className="p-4">
+              <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
-                  <Badge variant="outline">#{variant.id}</Badge>
-                  <h3 className="font-semibold">{variant.name}</h3>
+                  <h5 className="font-medium">{variant.name || `Variant ${index + 1}`}</h5>
                   {variant.id === bestVariant?.id && (
                     <Trophy className="h-4 w-4 text-yellow-500" />
                   )}
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className={`font-mono text-sm ${getPerformanceColor(variant.performance?.improvement_percent || 0)}`}>
-                    {variant.performance?.improvement_percent >= 0 ? '+' : ''}
-                    {variant.performance?.improvement_percent?.toFixed(1)}%
-                  </span>
-                  <Badge variant="secondary" className="text-xs">
-                    {getPerformanceBadge(variant.performance?.improvement_percent || 0)}
+                <div className="flex gap-2">
+                  <Badge 
+                    variant={variant.performance?.improvement_percent >= 50 ? 'default' : 'secondary'}
+                    className="text-xs"
+                  >
+                    {variant.performance?.improvement_percent?.toFixed(1) || '0'}% faster
                   </Badge>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => handleCopy(variant.code, variant.name || `Variant ${index + 1}`)}
+                  >
+                    <Copy className="mr-1 h-3 w-3" />
+                    Copy
+                  </Button>
                 </div>
               </div>
-
+              
               <p className="text-sm text-muted-foreground mb-3">{variant.description}</p>
-
+              
               {/* Performance Metrics */}
-              <div className="grid grid-cols-3 gap-4 mb-3">
+              <div className="grid grid-cols-3 gap-2 mb-3 text-xs">
                 <div className="text-center">
-                  <Clock className="h-4 w-4 mx-auto mb-1 text-muted-foreground" />
-                  <div className="text-xs font-mono">{variant.performance?.execution_time_ms?.toFixed(3)}ms</div>
-                  <div className="text-xs text-muted-foreground">Execution</div>
+                  <div className="font-mono">{variant.performance?.execution_time_ms?.toFixed(3) || '0'}ms</div>
+                  <div className="text-muted-foreground">Time</div>
                 </div>
                 <div className="text-center">
-                  <MemoryStick className="h-4 w-4 mx-auto mb-1 text-muted-foreground" />
-                  <div className="text-xs font-mono">{variant.performance?.memory_usage_mb?.toFixed(1)}MB</div>
-                  <div className="text-xs text-muted-foreground">Memory</div>
+                  <div className="font-mono">{variant.performance?.memory_usage_mb?.toFixed(1) || '0'}MB</div>
+                  <div className="text-muted-foreground">Memory</div>
                 </div>
                 <div className="text-center">
-                  <Play className="h-4 w-4 mx-auto mb-1 text-muted-foreground" />
-                  <div className="text-xs font-mono">{variant.performance?.iterations?.toLocaleString()}</div>
-                  <div className="text-xs text-muted-foreground">Iterations</div>
+                  <div className="font-mono">{variant.performance?.iterations?.toLocaleString() || '0'}</div>
+                  <div className="text-muted-foreground">Iterations</div>
                 </div>
               </div>
-
-              {/* Always Visible Code Preview in Scrollable Box */}
-              <div className="bg-muted rounded-md border">
-                <div className="flex items-center justify-between p-2 border-b bg-background/50">
-                  <span className="text-sm font-medium text-muted-foreground">
-                    Code Preview - Variant {index + 1}
-                  </span>
-                  <div className="flex gap-1">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        handleCopy(variant.code, variant.name)
-                      }}
-                      className="h-6 text-xs"
-                    >
-                      <Copy className="h-3 w-3 mr-1" />
-                      Copy
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => toggleExpanded(variant.id)}
-                      className="h-6 text-xs"
-                    >
-                      {expandedVariants.has(variant.id) ? 'Collapse' : 'Expand'}
-                    </Button>
-                  </div>
-                </div>
-                <div className={`${expandedVariants.has(variant.id) ? 'max-h-96' : 'max-h-32'} overflow-y-auto transition-all`}>
-                  <pre className="p-3 text-xs leading-relaxed">
-                    <code className="font-mono whitespace-pre-wrap">{variant.code || '// Code not available'}</code>
-                  </pre>
-                </div>
+              
+              {/* Code Preview in Scrollable Box */}
+              <ScrollArea className="h-[200px]">
+                <pre className="bg-muted p-3 rounded-md text-sm overflow-x-auto">
+                  <code>{variant.code || '// Code not available'}</code>
+                </pre>
+              </ScrollArea>
+              
+              {/* Additional Details */}
+              <div className="text-xs text-muted-foreground mt-2 flex items-center justify-between">
+                <span>
+                  {variant.performance?.real_execution ? '🚀 Real E2B' : '⚡ Simulated'}
+                </span>
+                <span>Variant #{variant.id}</span>
               </div>
             </Card>
           ))}

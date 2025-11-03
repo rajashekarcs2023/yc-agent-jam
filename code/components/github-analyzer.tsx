@@ -68,7 +68,7 @@ export function GitHubAnalyzer({ className }: GitHubAnalyzerProps) {
 
     try {
       // Start GitHub analysis
-      const response = await fetch('http://localhost:8000/api/github/analyze', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/github/analyze`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -104,7 +104,7 @@ export function GitHubAnalyzer({ className }: GitHubAnalyzerProps) {
   const monitorAnalysis = async (id: string) => {
     const pollInterval = setInterval(async () => {
       try {
-        const response = await fetch(`http://localhost:8000/api/experiment/${id}/results`)
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/experiment/${id}/results`)
         const data = await response.json()
 
         setProgress(data.progress || 0)

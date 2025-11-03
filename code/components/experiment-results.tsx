@@ -29,7 +29,7 @@ export function ExperimentResults({ originalCode, experimentData, experimentId }
 
   const fetchExperimentResults = async (expId: string) => {
     try {
-      const response = await fetch(`http://localhost:8000/api/experiment/${expId}/results`)
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/experiment/${expId}/results`)
       const data = await response.json()
       setFullResults(data.results)
     } catch (error) {
