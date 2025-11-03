@@ -207,6 +207,9 @@ async def run_experiment(experiment_id: str, request: ExperimentRequest):
                 i + 1
             )
             
+            # Add ID to variant
+            variant["id"] = i + 1
+            
             variants.append(variant)
             
             # Simulate processing delay
@@ -556,6 +559,8 @@ async def experiment_stream(websocket: WebSocket, experiment_id: str):
                     "experiment_id": experiment_id,
                     "status": experiment["status"],
                     "results": experiment.get("results"),
+                    "variants": experiment.get("variants", []),
+                    "full_experiment": experiment,  # Include full experiment data
                     "error": experiment.get("error")
                 })
                 break

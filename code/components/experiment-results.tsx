@@ -17,12 +17,14 @@ interface ExperimentResultsProps {
 export function ExperimentResults({ originalCode, experimentData, experimentId }: ExperimentResultsProps) {
   const { toast } = useToast()
   const [fullResults, setFullResults] = useState<any>(null)
+  const [showVariants, setShowVariants] = useState(false)
 
   useEffect(() => {
     if (experimentId && !experimentData) {
       // Fetch full results from backend
       fetchExperimentResults(experimentId)
     } else if (experimentData) {
+      console.log('Setting experimentData:', experimentData) // Debug log
       setFullResults(experimentData)
     }
   }, [experimentId, experimentData])
@@ -31,13 +33,14 @@ export function ExperimentResults({ originalCode, experimentData, experimentId }
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/experiment/${expId}/results`)
       const data = await response.json()
-      setFullResults(data.results)
+      console.log('Full experiment data:', data) // Debug log
+      setFullResults(data) // Set the entire experiment data, not just data.results
     } catch (error) {
       console.error('Error fetching experiment results:', error)
     }
   }
 
-  const bestVariant = fullResults?.best_variant
+  const bestVariant = fullResults?.results?.best_variant
   const optimizedCode = bestVariant?.code || `// Optimized code will appear here after experiment completes
 // Live Code Experiment Agent generated this optimization
 function optimizedFunction() {
@@ -56,6 +59,9 @@ function optimizedFunction() {
   // Get all variants from the full experiment data
   const allVariants = fullResults?.variants || []
   const experimentDetails = fullResults || {}
+  
+  console.log('All variants:', allVariants) // Debug log
+  console.log('Best variant:', bestVariant) // Debug log
 
   return (
     <div className="space-y-6">
@@ -68,11 +74,11 @@ function optimizedFunction() {
               <div className="flex gap-2 mt-2">
                 <Badge variant="secondary">
                   <Zap className="mr-1 h-3 w-3" />
-                  {experimentDetails.total_variants || allVariants.length} variants generated
+                  {experimentDetails.results?.total_variants || allVariants.length} variants generated
                 </Badge>
-                {experimentDetails.real_execution_count > 0 && (
+                {(experimentDetails.results?.real_execution_count || 0) > 0 && (
                   <Badge variant="default">
-                    🚀 {experimentDetails.real_execution_count} real E2B executions
+                    🚀 {experimentDetails.results?.real_execution_count} real E2B executions
                   </Badge>
                 )}
                 <Badge variant="outline">
@@ -86,12 +92,44 @@ function optimizedFunction() {
               <Copy className="mr-2 h-4 w-4" />
               Copy Best Code
             </Button>
+            <Button 
+              variant={showVariants ? "secondary" : "default"} 
+              size="sm"
+              onClick={() => setShowVariants(!showVariants)}
+            >
+              <Zap className="mr-2 h-4 w-4" />
+              {showVariants ? "Hide Variants" : "View All Variants"}
+            </Button>
             <Button variant="outline" size="sm">
               <RotateCcw className="mr-2 h-4 w-4" />
               Run New Experiment
             </Button>
           </div>
         </div>
+
+        {/* Variants Available Notice */}
+        {allVariants.length > 0 && !showVariants && (
+          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Zap className="h-5 w-5 text-blue-600" />
+                <span className="text-blue-800 font-medium">
+                  {allVariants.length} Optimized Variants Generated
+                </span>
+              </div>
+              <Button 
+                size="sm" 
+                onClick={() => setShowVariants(true)}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                View Variants →
+              </Button>
+            </div>
+            <p className="text-blue-700 text-sm mt-1">
+              Click to explore all optimized code variants with performance improvements and copy functionality.
+            </p>
+          </div>
+        )}
 
         {/* Quick Stats */}
         <div className="grid gap-4 sm:grid-cols-4">
@@ -123,7 +161,7 @@ function optimizedFunction() {
               <p className="text-sm text-muted-foreground">Avg Improvement</p>
             </div>
             <p className="text-xl font-bold text-green-600">
-              {experimentDetails.avg_improvement?.toFixed(1) || "45"}%
+              {experimentDetails.results?.avg_improvement?.toFixed(1) || "45"}%
             </p>
             <p className="mt-1 text-xs text-muted-foreground">Across all variants</p>
           </Card>
@@ -133,7 +171,7 @@ function optimizedFunction() {
               <p className="text-sm text-muted-foreground">Total Variants</p>
             </div>
             <p className="text-xl font-bold text-yellow-600">
-              {allVariants.length || experimentDetails.total_variants || 0}
+              {allVariants.length || experimentDetails.results?.total_variants || 0}
             </p>
             <p className="mt-1 text-xs text-muted-foreground">Generated & tested</p>
           </Card>
@@ -163,8 +201,8 @@ function optimizedFunction() {
         </div>
       </Card>
 
-      {/* All Variants Viewer */}
-      {allVariants.length > 0 && (
+      {/* All Variants Viewer - Only show when user clicks the button */}
+      {showVariants && allVariants.length > 0 && (
         <VariantViewer 
           variants={allVariants}
           originalCode={originalCode}

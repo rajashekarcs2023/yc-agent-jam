@@ -101,7 +101,9 @@ export function ExperimentLab() {
       } else if (data.type === 'complete') {
         setIsRunning(false)
         setShowResults(true)
-        setExperimentData(data.results)
+        console.log('WebSocket complete data:', data) // Debug log
+        // Use full experiment data if available, otherwise use results
+        setExperimentData(data.full_experiment || data)
         ws.close()
       }
     }

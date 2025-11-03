@@ -82,7 +82,7 @@ class MetorialService:
             try:
                 # Create a session with the Exa MCP server deployment
                 session = self.metorial.create_mcp_session(
-                    server_deployment_id=self.exa_deployment_id
+                    self.exa_deployment_id
                 )
                 
                 # Call the Exa search tool through Metorial
