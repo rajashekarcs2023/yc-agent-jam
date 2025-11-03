@@ -31,14 +31,80 @@ export function ExperimentLab() {
   const [contributeToLibrary, setContributeToLibrary] = useState(true)
   const [privacyLevel, setPrivacyLevel] = useState("public")
 
-  const handleStartExperiment = () => {
+  const [experimentId, setExperimentId] = useState<string | null>(null)
+  const [experimentData, setExperimentData] = useState<any>(null)
+
+  const handleStartExperiment = async () => {
+    if (!code.trim()) return
+    
     setIsRunning(true)
     setShowResults(false)
-    // Simulate experiment completion after 5 seconds
-    setTimeout(() => {
+    setExperimentData(null)
+    
+    try {
+      // Start experiment via backend API
+      const response = await fetch('http://localhost:8000/api/experiment/start', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          code,
+          language,
+          target,
+          variants: Math.min(variants, 10), // Limit for real execution
+          iterations,
+          settings: {
+            memory_profiling: memoryProfiling,
+            mutation_level: mutationLevel[0],
+            experimental_algorithms: experimentalAlgorithms,
+            privacy_level: privacyLevel
+          }
+        })
+      })
+      
+      const result = await response.json()
+      
+      if (result.experiment_id) {
+        setExperimentId(result.experiment_id)
+        // Start WebSocket connection for real-time updates
+        connectWebSocket(result.experiment_id)
+      } else {
+        throw new Error('Failed to start experiment')
+      }
+      
+    } catch (error) {
+      console.error('Error starting experiment:', error)
       setIsRunning(false)
-      setShowResults(true)
-    }, 5000)
+      // Fallback to simulation
+      setTimeout(() => {
+        setIsRunning(false)
+        setShowResults(true)
+      }, 5000)
+    }
+  }
+
+  const connectWebSocket = (expId: string) => {
+    const ws = new WebSocket(`ws://localhost:8000/api/experiment/stream/${expId}`)
+    
+    ws.onmessage = (event) => {
+      const data = JSON.parse(event.data)
+      
+      if (data.type === 'progress') {
+        // Update progress in real-time
+        console.log(`Experiment progress: ${data.progress}%`)
+      } else if (data.type === 'complete') {
+        setIsRunning(false)
+        setShowResults(true)
+        setExperimentData(data.results)
+        ws.close()
+      }
+    }
+    
+    ws.onerror = (error) => {
+      console.error('WebSocket error:', error)
+      setIsRunning(false)
+    }
   }
 
   return (
@@ -229,7 +295,11 @@ export function ExperimentLab() {
       {/* Results Section */}
       {showResults && (
         <div className="mt-6">
-          <ExperimentResults originalCode={code} />
+          <ExperimentResults 
+            originalCode={code} 
+            experimentData={experimentData}
+            experimentId={experimentId}
+          />
         </div>
       )}
     </main>

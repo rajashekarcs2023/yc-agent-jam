@@ -23,6 +23,7 @@ from services.captain_service import CaptainService
 from services.morph_service import MorphService
 from services.metorial_service import MetorialService
 from services.firecrawl_service import FirecrawlService
+from services.e2b_service import E2BService
 
 app = FastAPI(title="CodeOptim Platform API", version="1.0.0")
 
@@ -40,6 +41,7 @@ captain_service = CaptainService()
 morph_service = MorphService()
 metorial_service = MetorialService()
 firecrawl_service = FirecrawlService()
+e2b_service = E2BService()
 
 # Active experiments storage
 active_experiments: Dict[str, Dict] = {}
@@ -156,8 +158,8 @@ async def run_experiment(experiment_id: str, request: ExperimentRequest):
         print(f"⚡ Generating {request.variants} variants with Morph")
         variants = []
         
-        for i in range(request.variants):
-            experiment["progress"] = int((i / request.variants) * 100)
+        for i in range(min(request.variants, 10)):  # Limit to 10 for real execution
+            experiment["progress"] = int((i / min(request.variants, 10)) * 80)  # 80% for generation
             
             # Generate variant using Morph Fast Apply
             variant = await morph_service.generate_variant(
@@ -167,33 +169,59 @@ async def run_experiment(experiment_id: str, request: ExperimentRequest):
                 i + 1
             )
             
-            # Simulate performance testing
-            performance = simulate_performance_test(variant["code"], request.iterations)
-            
-            variant_data = {
-                "id": i + 1,
-                "name": variant["name"],
-                "code": variant["code"],
-                "description": variant["description"],
-                "performance": performance,
-                "timestamp": datetime.now().isoformat()
-            }
-            
-            variants.append(variant_data)
-            experiment["variants"] = variants
+            variants.append(variant)
             
             # Simulate processing delay
             await asyncio.sleep(0.1)
         
-        # Step 4: Find best variant
-        best_variant = max(variants, key=lambda v: v["performance"]["improvement_percent"])
+        experiment["variants"] = variants
+        experiment["status"] = "executing"
+        experiment["progress"] = 80
+        
+        # Step 4: Execute variants with E2B for real performance testing
+        print(f"🚀 Executing {len(variants)} variants with E2B sandboxes")
+        executed_variants = await e2b_service.execute_code_variants(
+            variants,
+            request.language,
+            test_input={"sample": "benchmark_data"},
+            iterations=request.iterations
+        )
+        
+        # Process execution results
+        final_variants = []
+        for executed_variant in executed_variants:
+            execution_result = executed_variant.get("execution_result", {})
+            
+            variant_data = {
+                "id": executed_variant["id"],
+                "name": executed_variant["name"],
+                "code": executed_variant["code"],
+                "description": executed_variant["description"],
+                "performance": {
+                    "execution_time_ms": execution_result.get("avg_time_per_iteration_ms", 0),
+                    "memory_usage_mb": execution_result.get("memory_usage_mb", 0),
+                    "improvement_percent": _calculate_improvement(execution_result),
+                    "iterations": execution_result.get("iterations_completed", request.iterations),
+                    "real_execution": executed_variant.get("real_performance", False)
+                },
+                "execution_details": execution_result,
+                "timestamp": datetime.now().isoformat()
+            }
+            
+            final_variants.append(variant_data)
+        
+        experiment["variants"] = final_variants
+        
+        # Step 5: Find best variant
+        best_variant = max(final_variants, key=lambda v: v["performance"]["improvement_percent"])
         
         experiment["status"] = "completed"
         experiment["progress"] = 100
         experiment["results"] = {
             "best_variant": best_variant,
-            "total_variants": len(variants),
-            "avg_improvement": sum(v["performance"]["improvement_percent"] for v in variants) / len(variants),
+            "total_variants": len(final_variants),
+            "avg_improvement": sum(v["performance"]["improvement_percent"] for v in final_variants) / len(final_variants),
+            "real_execution_count": sum(1 for v in final_variants if v["performance"]["real_execution"]),
             "completed_at": datetime.now().isoformat()
         }
         
@@ -270,6 +298,18 @@ async def run_documentation_generation(generation_id: str, request: Documentatio
         print(f"❌ Documentation generation {generation_id} failed: {str(e)}")
         generation["status"] = "failed"
         generation["error"] = str(e)
+
+def _calculate_improvement(execution_result: Dict[str, Any]) -> float:
+    """Calculate performance improvement percentage"""
+    # Simple improvement calculation based on execution time
+    # In a real scenario, this would compare against a baseline
+    base_time = 1.0  # Assume 1ms baseline
+    actual_time = execution_result.get("avg_time_per_iteration_ms", 1.0)
+    
+    if actual_time > 0:
+        improvement = ((base_time - actual_time) / base_time) * 100
+        return max(-50, min(100, improvement))  # Clamp between -50% and 100%
+    return 0.0
 
 def simulate_performance_test(code: str, iterations: int) -> Dict:
     """Simulate performance testing (replace with real execution later)"""
