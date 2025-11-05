@@ -266,10 +266,12 @@ class GitHubService:
                 "file_path": file['path'],
                 "language": file['language'],
                 "size": file['size'],
+                "content": file_content,  # Include actual content for Captain analysis
                 "algorithms_detected": algorithms_detected,
                 "performance_issues": performance_issues,
                 "complexity_score": complexity_score,
-                "optimization_priority": "high" if complexity_score > 7 else "medium" if complexity_score > 3 else "low"
+                "optimization_priority": "high" if complexity_score > 7 else "medium" if complexity_score > 3 else "low",
+                "captain_ready": True  # Indicates this file is ready for Captain analysis
             }
             
         except Exception as e:

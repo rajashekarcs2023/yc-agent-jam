@@ -1,0 +1,4 @@
+# MCP Server Requirements for Live Code Experiment Agent
+# These are additional to the main project requirements
+
+mcp>=1.0.0

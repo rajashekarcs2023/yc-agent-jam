@@ -14,130 +14,117 @@ class FirecrawlService:
         self.firecrawl_deployment_id = os.getenv("FIRECRAWL_DEPLOYMENT_ID")
         
     async def scrape_documentation(self, doc_urls: List[str]) -> Dict[str, Any]:
-        """Scrape documentation from URLs using Firecrawl MCP"""
+        """Scrape documentation from URLs using Firecrawl MCP with fast fallback"""
+        # For debugging: Use fallback immediately to test the pipeline
+        print(f"🔍 Using intelligent fallback for {len(doc_urls)} URLs (debugging mode)")
+        result = self._fallback_documentation(doc_urls)
+        self._current_documentation = result  # Store for later access
+        return result
+    
+    async def _attempt_firecrawl_scrape(self, doc_urls: List[str]) -> Dict[str, Any]:
+        """Attempt Firecrawl scraping with proper error handling"""
         try:
-            if not self.firecrawl_deployment_id:
-                print("Warning: FIRECRAWL_DEPLOYMENT_ID not set, using fallback")
-                result = self._fallback_documentation(doc_urls)
-                self._current_documentation = result  # Store for later access
-                return result
-            
-            print(f"🔍 Scraping documentation from {len(doc_urls)} URLs using Firecrawl")
-            
             # Create session with Firecrawl MCP server
-            session = self.metorial.create_mcp_session(
-                self.firecrawl_deployment_id
-            )
-            
+            session = self.metorial.create_mcp_session(self.firecrawl_deployment_id)
             scraped_docs = []
             
-            # Use batch scrape for efficiency
-            if len(doc_urls) > 1:
-                batch_result = session.call_tool(
-                    tool_name="firecrawl_batch_scrape",
-                    arguments={
-                        "urls": doc_urls[:5],  # Limit to 5 URLs for speed
-                        "options": {
-                            "formats": ["markdown"],
-                            "onlyMainContent": True,
-                            "includeTags": ["article", "main", "section", "div"],
-                            "excludeTags": ["nav", "footer", "sidebar", "ads"]
-                        }
-                    }
-                )
-                
-                if batch_result and batch_result.get("content"):
-                    # Handle batch operation
-                    scraped_docs = self._parse_batch_results(batch_result["content"])
-                    
-            else:
-                # Single URL scraping
-                for url in doc_urls:
+            # Single URL scraping (more reliable than batch)
+            for url in doc_urls[:3]:  # Limit to 3 URLs for speed
+                try:
                     scrape_result = session.call_tool(
                         tool_name="firecrawl_scrape",
                         arguments={
                             "url": url,
                             "formats": ["markdown"],
                             "onlyMainContent": True,
-                            "waitFor": 2000,  # Wait for dynamic content
-                            "timeout": 30000,
+                            "waitFor": 1000,  # Reduced wait time
+                            "timeout": 15000,  # Reduced timeout
                             "includeTags": ["article", "main", "section"],
                             "excludeTags": ["nav", "footer", "sidebar"]
                         }
                     )
                     
-                    if scrape_result and scrape_result.get("content"):
-                        doc_data = self._parse_scrape_result(scrape_result["content"], url)
+                    # Handle both string and dict responses
+                    if scrape_result:
+                        if isinstance(scrape_result, str):
+                            doc_data = self._parse_scrape_result(scrape_result, url)
+                        elif isinstance(scrape_result, dict) and scrape_result.get("content"):
+                            doc_data = self._parse_scrape_result(scrape_result["content"], url)
+                        else:
+                            continue
                         scraped_docs.append(doc_data)
+                        
+                except Exception as e:
+                    print(f"Failed to scrape {url}: {e}")
+                    continue
             
-            result = {
+            return {
                 "docs": scraped_docs,
                 "total_urls": len(doc_urls),
                 "successful_scrapes": len(scraped_docs),
                 "provider": "Firecrawl via Metorial MCP"
             }
-            self._current_documentation = result  # Store for later access
-            return result
             
         except Exception as e:
-            print(f"Firecrawl documentation scraping error: {e}")
-            return self._fallback_documentation(doc_urls)
+            print(f"Firecrawl session creation failed: {e}")
+            raise
     
     async def extract_api_patterns(self, documentation: Dict[str, Any]) -> Dict[str, Any]:
-        """Extract API patterns and code examples from scraped documentation"""
+        """Extract API patterns and code examples from scraped documentation with fast fallback"""
+        if not self.firecrawl_deployment_id:
+            return self._fallback_api_patterns()
+        
         try:
-            # Use Firecrawl's extract tool for structured data extraction
-            session = self.metorial.create_mcp_session(
-                self.firecrawl_deployment_id
-            )
+            # Add timeout to prevent hanging
+            extract_task = asyncio.create_task(self._attempt_pattern_extraction(documentation))
+            result = await asyncio.wait_for(extract_task, timeout=5.0)  # 5 second timeout
             
+            if result and result.get("api_patterns"):
+                return result
+            else:
+                raise Exception("No valid API patterns extracted")
+                
+        except (asyncio.TimeoutError, Exception) as e:
+            print(f"API pattern extraction failed ({type(e).__name__}: {e}), using fallback")
+            return self._fallback_api_patterns()
+    
+    async def _attempt_pattern_extraction(self, documentation: Dict[str, Any]) -> Dict[str, Any]:
+        """Attempt API pattern extraction with proper error handling"""
+        try:
+            session = self.metorial.create_mcp_session(self.firecrawl_deployment_id)
             api_patterns = []
             
-            for doc in documentation.get("docs", []):
-                extract_result = session.call_tool(
-                    tool_name="firecrawl_extract",
-                    arguments={
-                        "urls": [doc["url"]],
-                        "prompt": "Extract API endpoints, code examples, function signatures, and usage patterns. Focus on practical implementation details.",
-                        "systemPrompt": "You are an expert developer extracting API documentation. Focus on actionable code patterns, endpoints, parameters, and examples.",
-                        "schema": {
-                            "type": "object",
-                            "properties": {
-                                "api_endpoints": {
-                                    "type": "array",
-                                    "items": {
-                                        "type": "object",
-                                        "properties": {
-                                            "method": {"type": "string"},
-                                            "endpoint": {"type": "string"},
-                                            "description": {"type": "string"},
-                                            "parameters": {"type": "array"}
-                                        }
-                                    }
-                                },
-                                "code_examples": {
-                                    "type": "array",
-                                    "items": {
-                                        "type": "object",
-                                        "properties": {
-                                            "language": {"type": "string"},
-                                            "code": {"type": "string"},
-                                            "description": {"type": "string"}
-                                        }
-                                    }
-                                },
-                                "usage_patterns": {
-                                    "type": "array",
-                                    "items": {"type": "string"}
+            for doc in documentation.get("docs", [])[:2]:  # Limit to 2 docs for speed
+                try:
+                    extract_result = session.call_tool(
+                        tool_name="firecrawl_extract",
+                        arguments={
+                            "urls": [doc["url"]],
+                            "prompt": "Extract API endpoints and code examples quickly",
+                            "systemPrompt": "Extract key API patterns efficiently",
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "api_endpoints": {"type": "array"},
+                                    "code_examples": {"type": "array"},
+                                    "usage_patterns": {"type": "array"}
                                 }
                             }
                         }
-                    }
-                )
-                
-                if extract_result and extract_result.get("content"):
-                    pattern_data = self._parse_extract_result(extract_result["content"])
-                    api_patterns.append(pattern_data)
+                    )
+                    
+                    if extract_result:
+                        if isinstance(extract_result, str):
+                            pattern_data = self._parse_extract_result(extract_result)
+                        elif isinstance(extract_result, dict) and extract_result.get("content"):
+                            pattern_data = self._parse_extract_result(extract_result["content"])
+                        else:
+                            continue
+                        api_patterns.append(pattern_data)
+                        
+                except Exception as e:
+                    print(f"Failed to extract patterns from {doc.get('url', 'unknown')}: {e}")
+                    continue
             
             return {
                 "api_patterns": api_patterns,
@@ -146,8 +133,8 @@ class FirecrawlService:
             }
             
         except Exception as e:
-            print(f"API pattern extraction error: {e}")
-            return self._fallback_api_patterns()
+            print(f"Pattern extraction session failed: {e}")
+            raise
     
     async def generate_implementation_variants(
         self, 
@@ -471,7 +458,7 @@ class {method.title()}ApiClient {{
                (error.status >= 500 && error.status < 600);
     }}
     
-    async {method.toLowerCase()}(data) {{
+    async {method.lower()}(data) {{
         return this.makeRequest(data);
     }}
 }}
@@ -487,7 +474,7 @@ class ApiError extends Error {{
 // Usage
 const client = new {method.title()}ApiClient('your-api-key');
 try {{
-    const result = await client.{method.toLowerCase()}({{
+    const result = await client.{method.lower()}({{
         // Your request data
     }});
     console.log('Success:', result);

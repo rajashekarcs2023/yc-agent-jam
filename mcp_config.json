@@ -1,0 +1,27 @@
+{
+  "mcpServers": {
+    "live-code-experiment-agent": {
+      "command": "python",
+      "args": ["mcp_server.py"],
+      "env": {
+        "CAPTAIN_API_KEY": "${CAPTAIN_API_KEY}",
+        "CAPTAIN_ORG_ID": "${CAPTAIN_ORG_ID}",
+        "MORPH_API_KEY": "${MORPH_API_KEY}",
+        "METORIAL_API_KEY": "${METORIAL_API_KEY}",
+        "E2B_API_KEY": "${E2B_API_KEY}",
+        "GITHUB_TOKEN": "${GITHUB_TOKEN}",
+        "FIRECRAWL_DEPLOYMENT_ID": "${FIRECRAWL_DEPLOYMENT_ID}",
+        "EXA_DEPLOYMENT_ID": "${EXA_DEPLOYMENT_ID}",
+        "E2B_DEPLOYMENT_ID": "${E2B_DEPLOYMENT_ID}"
+      },
+      "description": "🧠 Captain-powered code optimization, documentation generation, and GitHub repository analysis. Features unlimited context processing, tool calling, and comprehensive AI-driven code analysis.",
+      "capabilities": [
+        "code-optimization",
+        "documentation-generation", 
+        "github-analysis",
+        "unlimited-context-processing",
+        "ai-code-generation"
+      ]
+    }
+  }
+}

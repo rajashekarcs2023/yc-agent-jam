@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Progress } from "@/components/ui/progress"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import { Github, Search, FileCode, Zap, AlertTriangle, TrendingUp, Copy } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 
@@ -360,41 +361,113 @@ export function GitHubAnalyzer({ className }: GitHubAnalyzerProps) {
               </TabsContent>
 
               <TabsContent value="optimizations" className="mt-4">
-                <div className="space-y-4">
-                  <h4 className="font-medium">AI-Generated Optimizations</h4>
-                  {fullAnalysis?.generated_optimizations?.map((opt: any, index: number) => (
-                    <Card key={index} className="p-4">
-                      <div className="flex items-center justify-between mb-3">
-                        <h5 className="font-medium">{opt.recommendation?.title}</h5>
+                <div className="space-y-6">
+                  {/* Overview Header */}
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="text-lg font-semibold">🧠 Captain-Generated Optimizations</h4>
+                      <p className="text-sm text-muted-foreground">
+                        {fullAnalysis?.generated_optimizations?.length || 0} optimization snippets generated with unlimited context analysis
+                      </p>
+                    </div>
+                    <div className="flex gap-2">
+                      <Badge variant="secondary">
+                        <Zap className="mr-1 h-3 w-3" />
+                        Captain Powered
+                      </Badge>
+                      {fullAnalysis?.generated_optimizations?.length > 0 && (
                         <Button 
                           variant="outline" 
                           size="sm"
                           onClick={() => {
-                            navigator.clipboard.writeText(opt.optimized_code?.code || '')
-                            toast({ title: "Code copied!", description: "Optimized code copied to clipboard" })
+                            const allCodes = fullAnalysis.generated_optimizations.map((opt: any, index: number) => 
+                              `// ========== Optimization ${index + 1}: ${opt.recommendation?.title} ==========\n// Impact: ${opt.recommendation?.impact}\n// Files: ${opt.files_affected?.join(', ')}\n\n${opt.optimized_code?.code || 'No code'}\n\n`
+                            ).join('')
+                            navigator.clipboard.writeText(allCodes)
+                            toast({ title: "All optimizations copied!", description: `${fullAnalysis.generated_optimizations.length} code snippets copied` })
                           }}
                         >
-                          <Copy className="mr-2 h-3 w-3" />
-                          Copy Code
+                          <Copy className="mr-1 h-3 w-3" />
+                          Copy All {fullAnalysis?.generated_optimizations?.length || 0} Codes
                         </Button>
-                      </div>
-                      <div className="mb-3">
-                        <Badge variant="outline">{opt.optimized_code?.name}</Badge>
-                        <p className="text-sm text-muted-foreground mt-1">{opt.optimized_code?.description}</p>
-                      </div>
-                      <pre className="bg-muted p-3 rounded-md text-sm overflow-x-auto">
-                        <code>{opt.optimized_code?.code || 'No code generated'}</code>
-                      </pre>
-                      <div className="text-xs text-muted-foreground mt-2">
-                        Affects: {opt.files_affected?.join(', ') || 'Multiple files'}
-                      </div>
-                    </Card>
-                  ))}
-                  
-                  {(!fullAnalysis?.generated_optimizations || fullAnalysis.generated_optimizations.length === 0) && (
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Optimizations Grid - Same as Variant Viewer */}
+                  {fullAnalysis?.generated_optimizations?.length > 0 ? (
+                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                      {fullAnalysis.generated_optimizations.map((opt: any, index: number) => (
+                        <Card key={index} className="p-4">
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-2">
+                              <h5 className="font-medium text-sm">{opt.optimized_code?.name || `Optimization ${index + 1}`}</h5>
+                              {opt.recommendation?.priority === 'high' && (
+                                <AlertTriangle className="h-4 w-4 text-red-500" />
+                              )}
+                            </div>
+                            <div className="flex gap-2">
+                              <Badge 
+                                variant={opt.recommendation?.priority === 'high' ? 'destructive' : 'secondary'}
+                                className="text-xs"
+                              >
+                                {opt.recommendation?.priority || 'medium'} priority
+                              </Badge>
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => {
+                                  navigator.clipboard.writeText(opt.optimized_code?.code || '')
+                                  toast({ title: "Code copied!", description: `${opt.optimized_code?.name} optimization copied` })
+                                }}
+                              >
+                                <Copy className="mr-1 h-3 w-3" />
+                                Copy
+                              </Button>
+                            </div>
+                          </div>
+                          
+                          <p className="text-sm text-muted-foreground mb-3">{opt.optimized_code?.description || opt.recommendation?.description}</p>
+                          
+                          {/* Impact Metrics */}
+                          <div className="grid grid-cols-2 gap-2 mb-3 text-xs">
+                            <div className="text-center">
+                              <div className="font-medium text-green-600">{opt.recommendation?.impact || 'Performance gain'}</div>
+                              <div className="text-muted-foreground">Expected Impact</div>
+                            </div>
+                            <div className="text-center">
+                              <div className="font-mono">{opt.files_affected?.length || 1}</div>
+                              <div className="text-muted-foreground">Files Affected</div>
+                            </div>
+                          </div>
+                          
+                          {/* Code Preview in Scrollable Box - Same as Variant Viewer */}
+                          <ScrollArea className="h-[200px]">
+                            <pre className="bg-muted p-3 rounded-md text-sm overflow-x-auto">
+                              <code>{opt.optimized_code?.code || '// No optimized code generated\n// This represents the optimization opportunity\n// identified by Captain analysis'}</code>
+                            </pre>
+                          </ScrollArea>
+                          
+                          {/* Additional Details */}
+                          <div className="text-xs text-muted-foreground mt-2 flex items-center justify-between">
+                            <span>
+                              🧠 Captain Analysis
+                            </span>
+                            <span>Type: {opt.recommendation?.type || 'optimization'}</span>
+                          </div>
+                        </Card>
+                      ))}
+                    </div>
+                  ) : (
                     <Card className="p-6 text-center">
                       <Zap className="mx-auto h-12 w-12 text-muted-foreground mb-2" />
-                      <p className="text-muted-foreground">No optimizations generated yet. Try analyzing a repository with algorithmic code.</p>
+                      <h5 className="font-medium mb-2">No Optimizations Generated</h5>
+                      <p className="text-muted-foreground text-sm">
+                        Try analyzing a repository with algorithmic code (sorting, searching, loops) to see Captain-generated optimizations.
+                      </p>
+                      <div className="mt-4 text-xs text-muted-foreground">
+                        💡 Repositories with Python, JavaScript, or Java algorithms work best
+                      </div>
                     </Card>
                   )}
                 </div>

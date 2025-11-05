@@ -97,8 +97,16 @@ class MetorialService:
                 )
                 
                 # Parse the actual Exa results
-                if search_result and search_result.get("content"):
-                    return self._parse_exa_results(search_result["content"], query)
+                if search_result:
+                    # Handle both string and dict responses from Metorial MCP
+                    if isinstance(search_result, str):
+                        return self._parse_exa_results(search_result, query)
+                    elif isinstance(search_result, dict) and search_result.get("content"):
+                        return self._parse_exa_results(search_result["content"], query)
+                    else:
+                        print(f"Unexpected search_result type: {type(search_result)}")
+                        print(f"Search result content: {search_result}")
+                        return self._parse_exa_results(str(search_result), query)
                     
             except Exception as api_error:
                 print(f"Metorial API call failed: {api_error}")
